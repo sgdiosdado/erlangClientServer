@@ -1,27 +1,29 @@
+% Iñaki Janeiro         - A00516978
+% Sergio Diosdado       - A00516971
+% Eduardo Guzmán Vega   - A01194108
+
+% Módulo Socio: Compradores que se suscribieron al pagar la membresía de la tienda.
+
 -module(socio).
 -export([suscribir_socio/1]).
 
-% nombre largo del servidor (nombre@máquina)
-matriz() -> 'tienda@Inakis-MacBook-Pro'.
+% Funcion getHostName: Regresa el nombre largo del servidor (nombre@máquina)
+getHostname() -> 'tienda@Inakis-MacBook-Pro'.
 
-% funciones de interfase
-% consulta(Quien) ->
-%     llama_banco({consulta, Quien}).
-% deposita(Quien, Cantidad) ->
-%     llama_banco({deposita, Quien, Cantidad}).
-% retira(Quien, Cantidad) ->
-%     llama_banco({retira, Quien, Cantidad}).
-% % cliente
 suscribir_socio(Socio) ->
-    Matriz = matriz(),
+    Matriz = getHostname(),
     monitor_node(Matriz, true),
-    {servidor_tienda, Matriz} ! {self(), mensaje},
+    {servidor_tienda, Matriz} ! {suscribe, {self(), Socio}},
     receive
         {servidor_banco, Respuesta} ->
             monitor_node(Matriz, false),
             Respuesta;
         {nodedown, Matriz} ->
             no;
-        PorLoProntoParaProbar ->
-            io:format("Mensaje recibido: ~p~n", [PorLoProntoParaProbar])
+        _ ->
+            error
+    after 2000 ->
+        io:format("TIME OUT ERROR")
     end.
+
+

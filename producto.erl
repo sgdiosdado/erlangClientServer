@@ -1,3 +1,8 @@
+% Iñaki Janeiro         - A00516978
+% Sergio Diosdado       - A00516971
+% Eduardo Guzmán Vega   - A01194108
+
+% Módulo Producto: Artículos registrados en la tienda, que pueden ser comprados por los socios.
 -module(producto).
 -export([producto_init/0]).
 
