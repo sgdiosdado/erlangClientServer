@@ -4,9 +4,9 @@
 
 % Módulo Tienda: Servidor que administra las suscripciones de socios y la venta de productos.
 -module(tienda).
--export([getHostname/0, abre_tienda/0, tienda_serv/1]).
+-export([getHostname/0, abre_tienda/0, tienda_serv/1, lista_socios/0, imprime_socios/1]).
 
-getHostname() -> 'tienda@Inakis-MacBook-Pro'.
+getHostname() -> 'tienda@MBP-de-Sergio'.
 
 % Datos SCHEMA: [[{PID_Socio, Socio}], [productos], [servicios]]
 abre_tienda() ->
@@ -48,14 +48,19 @@ tienda_serv(Datos) ->
         tienda_serv(tl(New_datos));
       true -> PID ! error, tienda_serv(Datos)
       end;
+    
     {modifica_producto, {PID, Producto, Cantidad}} -> 
       tienda_serv(modifica_producto(PID, Producto, Cantidad, Datos));
+    
     {lista_existencias, PID} -> 
         PID ! getProductos(Datos),
         tienda_serv(Datos);
+
+    {lista_socios} ->
+      imprime_socios(hd(Datos)),
+      tienda_serv(Datos);
     _ -> 
       io:format("Mensaje incorrecto ~n")
-
   end.
     
 subscribe_socio(PID, Socio, [ListaSocios | R]) ->
@@ -140,5 +145,14 @@ elimina_producto(Valor, ListaProductos) ->
 getProductos([_, Productos, _]) ->
     Productos.
 
-getSocios([Socios, _, _]) ->
-    Socios.
+lista_socios() ->
+  {servidor_tienda, getHostname()} ! {lista_socios},
+  io:format("Inicio de lista Socios~n")
+.
+
+imprime_socios([{PID, Socio} | T]) ->
+  io:format("Socio: ~p con PID ~p~n", [Socio, PID]),
+  imprime_socios(T);
+imprime_socios([]) ->
+  io:format("Fin de lista~n")
+.
