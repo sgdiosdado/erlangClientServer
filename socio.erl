@@ -5,10 +5,8 @@
 % Módulo Socio: Compradores que se suscribieron al pagar la membresía de la tienda.
 
 -module(socio).
--export([suscribir_socio/1, eliminar_socio/1, pruebas/0]).
-
-% Funcion getHostName: Regresa el nombre largo del servidor (nombre@máquina)
-getHostname() -> 'tienda@MBP-de-Sergio'.
+-export([suscribir_socio/1, eliminar_socio/1, lista_existencias/0, pruebas/0]).
+-import(tienda, [getHostname/0]).
 
 suscribir_socio(Socio) ->
     Matriz = getHostname(),
@@ -36,6 +34,20 @@ eliminar_socio(Socio) ->
       io:format("Socio ~p eliminado~n", [Socio]);
     error ->
       io:format("Hubo un error al eliminar el socio ~p~n", [Socio])
+    after 2000 ->
+      io:format("TIME OUT ERROR~n")
+  end
+.
+
+lista_existencias() -> 
+  Matriz = getHostname(),
+  monitor_node(Matriz, true),
+  {servidor_tienda, Matriz} ! {lista_existencias, self() },
+  receive
+    {nodedown, Matriz} ->
+      no;
+    Lista -> 
+      io:format("~p~n", [Lista])
     after 2000 ->
       io:format("TIME OUT ERROR~n")
   end

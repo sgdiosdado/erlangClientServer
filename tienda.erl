@@ -6,7 +6,7 @@
 -module(tienda).
 -export([getHostname/0, abre_tienda/0, tienda_serv/1]).
 
-getHostname() -> 'tienda@MBP-de-Sergio'.
+getHostname() -> 'tienda@Inakis-MacBook-Pro'.
 
 % Datos SCHEMA: [[{PID_Socio, Socio}], [productos], [servicios]]
 abre_tienda() ->
@@ -41,13 +41,18 @@ tienda_serv(Datos) ->
         true -> PID ! error, tienda_serv(Datos)
       end;
 
-    {elimina_producto, {PID, Producto, Cantidad}} -> 
-      New_datos = elimina_producto(PID, Producto, Cantidad, Datos),
+    {elimina_producto, {PID, Producto}} -> 
+      New_datos = elimina_producto(PID, Producto, Datos),
       if hd(New_datos) == ok ->
         PID ! ok,
         tienda_serv(tl(New_datos));
       true -> PID ! error, tienda_serv(Datos)
       end;
+    {modifica_producto, {PID, Producto, Cantidad}} -> 
+      tienda_serv(modifica_producto(PID, Producto, Cantidad, Datos));
+    {lista_existencias, PID} -> 
+        PID ! getProductos(Datos),
+        tienda_serv(Datos);
     _ -> 
       io:format("Mensaje incorrecto ~n")
 
@@ -73,7 +78,7 @@ elimina_socio(_, Socio, [ListaSocios | R]) ->
 
 % Acciones de productos
 registra_producto(PID, Producto, Cantidad, [ListaSocios, ListaProductos | R]) ->
-  case buscaProducto(Producto, ListaProductos) of
+  case busca_Producto(Producto, ListaProductos) of
     false ->
       io:format("Producto ~p se añadió~n", [Producto]),
       [ok | [ListaSocios | [ListaProductos ++ [{PID, Producto, Cantidad}] | R]]];
@@ -81,13 +86,17 @@ registra_producto(PID, Producto, Cantidad, [ListaSocios, ListaProductos | R]) ->
   end
 .
 
-elimina_producto(_, Producto, _, [H, ListaProductos | R]) ->
-  case buscaProducto(Producto, ListaProductos) of
+elimina_producto(_, Producto, [H, ListaProductos | R]) ->
+  case busca_Producto(Producto, ListaProductos) of
     true ->
       io:format("Producto ~p se eliminó~n", [Producto]),
       [ok | [H | [elimina_producto(Producto, ListaProductos) | R]]];
     false -> [error | [H | [ListaProductos | R]]]
   end
+.
+
+modifica_producto(_, Producto, Cantidad, [ListaSocios, ListaProductos | R]) ->
+  [ListaSocios | [modifica_producto(Producto, Cantidad, ListaProductos) | R]]  
 .
 
 %
@@ -100,12 +109,25 @@ busca(Valor, [_|T]) ->
 busca(_, _) -> 
   false.
 
-buscaProducto(Valor, [{_, Valor, _}|_]) ->
+busca_Producto(Valor, [{_, Valor, _}|_]) ->
   true;
-buscaProducto(Valor, [_|T]) ->
-  buscaProducto(Valor, T);
-buscaProducto(_, _) -> 
+busca_Producto(Valor, [_|T]) ->
+  busca_Producto(Valor, T);
+busca_Producto(_, _) -> 
   false.
+
+modifica_producto(Producto, Cantidad, [{PID, Producto, CantidadVieja}|T]) ->
+    if Cantidad + CantidadVieja >= 0 ->
+        PID ! ok,
+        [{PID, Producto, CantidadVieja+Cantidad}|T];
+        true -> PID ! error, io:format("No se pudo modificar porque el producto no tiene suficientes existencias~n"),
+        [{PID, Producto, CantidadVieja} | T] 
+    end;
+modifica_producto(Producto, Cantidad, [H|T]) ->
+    [H|modifica_producto(Producto, Cantidad, T)];
+modifica_producto(_, _, []) ->
+    io:format("No se encontro el producto~n"),
+    [].
 
 elimina(Valor, ListaSocios) ->
   lists:filter(fun({_, X}) -> X /= Valor end, ListaSocios)
@@ -114,3 +136,9 @@ elimina(Valor, ListaSocios) ->
 elimina_producto(Valor, ListaProductos) ->
   lists:filter(fun({_, X, _}) -> X /= Valor end, ListaProductos)
 .
+
+getProductos([_, Productos, _]) ->
+    Productos.
+
+getSocios([Socios, _, _]) ->
+    Socios.

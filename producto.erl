@@ -4,7 +4,7 @@
 
 % Módulo Producto: Artículos registrados en la tienda, que pueden ser comprados por los socios.
 -module(producto).
--export([registra_producto/2, elimina_producto/1, pruebas/0]).
+-export([registra_producto/2, elimina_producto/1, pruebas/0, modifica_producto/2]).
 -import(tienda, [getHostname/0]).
 
 registra_producto(Producto, Cantidad) ->
@@ -25,7 +25,7 @@ registra_producto(Producto, Cantidad) ->
 elimina_producto(Producto) ->
   Matriz = getHostname(),
   monitor_node(Matriz, true),
-  {servidor_tienda, Matriz} ! {elimina, {self(), Producto}},
+  {servidor_tienda, Matriz} ! {elimina_producto, {self(), Producto}},
   receive
     {nodedown, Matriz} ->
       no;
@@ -38,11 +38,26 @@ elimina_producto(Producto) ->
   end
 .
 
+modifica_producto(Producto, Cantidad) ->
+  Matriz = getHostname(),
+  monitor_node(Matriz, true),
+  {servidor_tienda, Matriz} ! {modifica_producto, {self(), Producto, Cantidad}},
+  receive
+    {nodedown, Matriz} ->
+      no;
+    ok ->
+      io:format("Producto ~p modificado correctamente~n", [Producto]);
+    error ->
+      io:format("No habia suficientes existencias de producto ~p~n", [Producto])
+  after 2000 ->
+    io:format("TIME OUT ERROR~n")
+  end.
+
 pruebas() ->
   producto:registra_producto(manzana, 5),
   producto:registra_producto(pera, 7),
   producto:registra_producto(guayaba, 32),
 
-  producto:registra_producto(pera, 3),
+  % producto:registra_producto(pera, 3),
 
   producto:elimina_producto(manzana).
