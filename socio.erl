@@ -60,8 +60,10 @@ crea_pedido(Socio, ListaDeProductos) ->
   receive
     {nodedown, Matriz} ->
       no;
-    ok -> 
-      io:format("Ok~n")
+    {ok, ID} -> 
+      io:format("Pedido valido. Numero de pedido: ~p~n Para confirmar corre acepta_pedido(~p, ~p)~n Para rechazar corre rechaza_pedido(~p, ~p)~n", [ID, Socio, ID, Socio, ID]);
+    error -> 
+      io:format("Error al hacer, pedido. Revisar las cantidades disponibles en existencia")
     after 2000 ->
       io:format("TIME OUT ERROR~n")
   end

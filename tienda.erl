@@ -6,7 +6,7 @@
 -module(tienda).
 -export([getHostname/0, abre_tienda/0, tienda_serv/1, lista_socios/0, imprime_socios/1, crear_pedido/3]).
 
-getHostname() -> 'tienda@MBP-de-Sergio'.
+getHostname() -> 'tienda@Inakis-MacBook-Pro'.
 
 % Datos SCHEMA: 
 % [
@@ -67,7 +67,12 @@ tienda_serv(Datos) ->
     
     {crea_pedido, {PID, Socio, ListaProductos, pedido_en_proceso}} ->
       New_datos = crear_pedido(Socio, ListaProductos, Datos),
-      tienda_serv(New_datos);
+      case hd(New_datos) of 
+      {ok, ID} ->
+        PID ! {ok, ID},
+        tienda_serv(tl(New_datos));
+      error -> PID ! error, tienda_serv(Datos)
+      end;
     _ -> 
       io:format("Mensaje incorrecto ~n")
   end.
@@ -115,8 +120,19 @@ modifica_producto(_, Producto, Cantidad, [ListaSocios, ListaProductos | R]) ->
 
 % [{No, Socio, ListaDeProductos, Estado}]
 crear_pedido(Socio, [{Producto, CantidadPedida} | T], [Socios, Productos, Pedidos]) ->
-  %TODO: Número identificador aleatorio
-  [Socios | [Productos | [lists:append(Pedidos, [{1, Socio, [{Producto, CantidadPedida} | T], pedido_en_proceso}])]]]
+  ListaResultados =
+    lists:map(fun ({X, Y}) -> 
+      valida_producto(X, Y, Productos) end,
+    [{Producto, CantidadPedida} | T]),
+
+    Resultado = lists:all(fun(X) -> X end, ListaResultados),
+  
+  case Resultado of
+    true ->
+    ID =rand:uniform(100000),
+     [{ok, ID} | [Socios | [Productos | [lists:append(Pedidos, [{ID, Socio, [{Producto, CantidadPedida} | T], pedido_en_proceso}])]]]];
+    false -> error
+    end
 .
 
 %
@@ -135,6 +151,14 @@ busca_Producto(Valor, [_|T]) ->
   busca_Producto(Valor, T);
 busca_Producto(_, _) -> 
   false.
+
+valida_producto(Producto, Cantidad, [{_, Producto, CantidadVieja}|_]) ->
+  CantidadVieja - Cantidad >= 0;
+valida_producto(Producto, Cantidad, [_|T]) ->
+    valida_producto(Producto, Cantidad, T);
+valida_producto(_, _, []) ->
+    io:format("No se encontro el producto~n"),
+    false.
 
 modifica_producto(Producto, Cantidad, [{PID, Producto, CantidadVieja}|T]) ->
     if Cantidad + CantidadVieja >= 0 ->
