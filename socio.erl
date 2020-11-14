@@ -15,15 +15,14 @@ suscribir_socio(Socio) ->
     monitor_node(Matriz, true),
     {servidor_tienda, Matriz} ! {suscribe, {self(), Socio}},
     receive
-        {servidor_banco, Respuesta} ->
-            monitor_node(Matriz, false),
-            Respuesta;
         {nodedown, Matriz} ->
             no;
-        _ ->
-            error
+        ok ->
+            io:format("Socio ~p suscrito correctamente~n", [Socio]);
+        error ->
+            io:format("Hubo un error al suscribir el socio ~p~n", [Socio])
     after 2000 ->
-        io:format("TIME OUT ERROR")
+        io:format("TIME OUT ERROR~n")
     end.
 
 

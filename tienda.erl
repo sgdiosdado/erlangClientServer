@@ -6,16 +6,21 @@
 -module(tienda).
 -export([init_tienda/0, tienda_serv/1]).
 
-% Datos SCHEMA: [[socios, []]], [productos, []], [pedidos, []]]
+% Datos SCHEMA: [[{PID_Socio, Socio}], [productos], [servicios]]
 init_tienda() ->
     register(servidor_tienda,
-        spawn('tienda@Inakis-MacBook-Pro', tienda, tienda_serv, [[]])).
+        spawn('tienda@Inakis-MacBook-Pro', tienda, tienda_serv, [[[],[],[]]])).
 tienda_serv(Datos) ->
-    busca(inaki, Datos),
+    io:format("~p~n", [Datos]),
     receive
         {suscribe, {PID, Socio}} -> 
             % Añadir socio a Datos
-            tienda_serv(subscribe_socio(PID, Socio, Datos));
+            New_socio = subscribe_socio(PID, Socio, Datos),
+            if hd(New_socio) == ok ->
+                PID ! ok,
+                tienda_serv(tl(New_socio));
+            true -> PID ! error, tienda_serv(Datos)
+            end;
 
         {PID, _} ->
             io:format("Hola, soy la tienda ~n"),
@@ -25,23 +30,36 @@ tienda_serv(Datos) ->
             io:format("Mensaje incorrecto ~n")
 
     end.
-
-subscribe_socio(Socio, Datos) ->
-    io:format("Nuevo socio ~p suscrito~n", [Socio]).
     
-subscribe_socio(De, Quien, []) ->
-    io:format("Entra aqui~n"),
-        [{De, Quien}].
+subscribe_socio(PID, Socio, [ListaSocios | R]) ->
+    io:format("Socio ~p se añadio~n", [Socio]),
+    case busca(Socio, ListaSocios) of 
+      false -> [ok | [ListaSocios ++ [{PID, Socio}] | R]];
+      true -> [error | [ListaSocios | R]]
+    end
+    . 
 
-busca(Quien, [{Quien, Valor}|_]) -> 
-    io:format("~p~n", [Quien]),
-    Valor;
-busca(Quien, [_|T]) ->
-    io:format("~p~n", [Quien]),
-    busca(Quien, T);
+busca(Valor, [{_, Valor}|_]) -> 
+    true;
+busca(Valor, [_|T]) ->
+    busca(Valor, T);
 busca(_, _) -> 
-    io:format("indefinido~n"),
-    indefinido.
+    false.
+
+
+getSocios(Datos) -> hd(Datos).
+getProductos(Datos) -> hd(tl(Datos)).
+getpedidos(Datos) -> tl(tl(Datos)).
+
+% busca(Quien, [{Quien, Valor}|_]) -> 
+%     io:format("~p~n", [Quien]),
+%     Valor;
+% busca(Quien, [_|T]) ->
+%     io:format("~p~n", [Quien]),
+%     busca(Quien, T);
+% busca(_, _) -> 
+%     io:format("indefinido~n"),
+%     indefinido.
 
 % suscribe_socio(_, [_, ListaSocio]) ->
 
