@@ -5,7 +5,7 @@
 % Módulo Socio: Compradores que se suscribieron al pagar la membresía de la tienda.
 
 -module(socio).
--export([suscribir_socio/1, eliminar_socio/1, lista_existencias/0, pruebas/0]).
+-export([suscribir_socio/1, eliminar_socio/1, lista_existencias/0, pruebas/0, crea_pedido/2]).
 -import(tienda, [getHostname/0]).
 
 suscribir_socio(Socio) ->
@@ -48,6 +48,20 @@ lista_existencias() ->
       no;
     Lista -> 
       io:format("~p~n", [Lista])
+    after 2000 ->
+      io:format("TIME OUT ERROR~n")
+  end
+.
+
+crea_pedido(Socio, ListaDeProductos) ->
+  Matriz = getHostname(),
+  monitor_node(Matriz, true),
+  {servidor_tienda, Matriz} ! {crea_pedido, {self(), Socio, ListaDeProductos, pedido_en_proceso}},
+  receive
+    {nodedown, Matriz} ->
+      no;
+    ok -> 
+      io:format("Ok~n")
     after 2000 ->
       io:format("TIME OUT ERROR~n")
   end

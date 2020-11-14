@@ -4,11 +4,16 @@
 
 % Módulo Tienda: Servidor que administra las suscripciones de socios y la venta de productos.
 -module(tienda).
--export([getHostname/0, abre_tienda/0, tienda_serv/1, lista_socios/0, imprime_socios/1]).
+-export([getHostname/0, abre_tienda/0, tienda_serv/1, lista_socios/0, imprime_socios/1, crear_pedido/3]).
 
 getHostname() -> 'tienda@MBP-de-Sergio'.
 
-% Datos SCHEMA: [[{PID_Socio, Socio}], [productos], [servicios]]
+% Datos SCHEMA: 
+% [
+%   [{PID_Socio, Socio}], 
+%   [[{PID, Producto, Cantidad}]],
+%   [{No, Socio, ListaDeProductos, Estado}]
+% ]
 abre_tienda() ->
   register(servidor_tienda,
     spawn(getHostname(), tienda, tienda_serv, [[[],[],[]]])).
@@ -59,6 +64,10 @@ tienda_serv(Datos) ->
     {lista_socios} ->
       imprime_socios(hd(Datos)),
       tienda_serv(Datos);
+    
+    {crea_pedido, {PID, Socio, ListaProductos, pedido_en_proceso}} ->
+      New_datos = crear_pedido(Socio, ListaProductos, Datos),
+      tienda_serv(New_datos);
     _ -> 
       io:format("Mensaje incorrecto ~n")
   end.
@@ -102,6 +111,12 @@ elimina_producto(_, Producto, [H, ListaProductos | R]) ->
 
 modifica_producto(_, Producto, Cantidad, [ListaSocios, ListaProductos | R]) ->
   [ListaSocios | [modifica_producto(Producto, Cantidad, ListaProductos) | R]]  
+.
+
+% [{No, Socio, ListaDeProductos, Estado}]
+crear_pedido(Socio, [{Producto, CantidadPedida} | T], [Socios, Productos, Pedidos]) ->
+  %TODO: Número identificador aleatorio
+  [Socios | [Productos | [lists:append(Pedidos, [{1, Socio, [{Producto, CantidadPedida} | T], pedido_en_proceso}])]]]
 .
 
 %
